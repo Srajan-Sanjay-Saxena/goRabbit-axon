@@ -2,15 +2,11 @@ package connection
 
 import (
 	amqp "github.com/rabbitmq/amqp091-go"
+	"github.com/Srajan-Sanjay-Saxena/RabbitMqWrapper-Service-Go/helpers"
 	"log"
 	"sync"
-	"github.com/Srajan-Sanjay-Saxena/RabbitMqWrapper-Service-Go/helpers"
 	"time"
 )
-
-type RabbitProduceClass struct{}
-
-type RabbitConsumeClass struct{}
 
 type RabbitMqConnectionClass struct {
 	Connection           *amqp.Connection
@@ -107,4 +103,3 @@ func (rabbit *RabbitMqConnectionClass) Shutdown() error {
 	}
 	return nil
 }
-
