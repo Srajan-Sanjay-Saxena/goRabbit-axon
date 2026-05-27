@@ -13,6 +13,9 @@ type RabbitMqProducer struct {
 	exchangeName string
 	routingKey   string
 	channel      *amqp.Channel
+	confirmCh    chan amqp.Confirmation
+	returnCh     chan amqp.Return
+	blockedCh    chan amqp.Blocking
 }
 
 func NewProducer(exchangeName, routingKey string) *RabbitMqProducer {
@@ -34,6 +37,10 @@ func (rProd *RabbitMqProducer) GetChannel(rabbit *connection.RabbitMqConnectionC
 	}
 
 	rProd.channel = ch
+	rProd.confirmCh = ch.NotifyPublish(make(chan amqp.Confirmation, 1))
+	rProd.returnCh = ch.NotifyReturn(make(chan amqp.Return, 1))
+	rProd.blockedCh = rabbit.Connection.NotifyBlocked(make(chan amqp.Blocking, 1))
+
 	return nil
 }
 
@@ -41,10 +48,6 @@ func (rProd *RabbitMqProducer) Publish(ctx context.Context, body []byte, rabbit 
 	if rProd.channel == nil {
 		return errors.New("channel not initialized, call GetChannel first")
 	}
-
-	confirmCh := rProd.channel.NotifyPublish(make(chan amqp.Confirmation, 1))
-	returnCh := rProd.channel.NotifyReturn(make(chan amqp.Return, 1))
-	blockedCh := rabbit.Connection.NotifyBlocked(make(chan amqp.Blocking, 1))
 
 	msg := rProd.BuildConfig(cfg)
 	msg.Body = body
@@ -55,19 +58,15 @@ func (rProd *RabbitMqProducer) Publish(ctx context.Context, body []byte, rabbit 
 	}
 
 	select {
-	case confirm := <-confirmCh:
+	case confirm := <-rProd.confirmCh:
 		if !confirm.Ack {
 			return errors.New("broker nacked the message")
 		}
 		return nil
-	case ret := <-returnCh:
+	case ret := <-rProd.returnCh:
 		return errors.New("message returned: " + ret.ReplyText)
-	case <-blockedCh:
-		// Connection blocked by broker (resource alarm).
-		// Waits here until broker sends unblocked or confirm arrives.
-		// For production, consider a backpressure queue (10,000 buffer size)
-		// to handle short broker hiccups without blocking callers.
-		<-confirmCh
+	case <-rProd.blockedCh:
+		<-rProd.confirmCh
 		return nil
 	case <-ctx.Done():
 		return ctx.Err()
