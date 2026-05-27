@@ -190,7 +190,6 @@ type RabbitMqPublisherConfig struct {
     Expiration    string
     ContentType   *string
     Headers       amqp.Table
-    FireAndForget bool
 }
 ```
 
@@ -198,7 +197,53 @@ type RabbitMqPublisherConfig struct {
 - `Priority` — 0-9, used with priority queues.
 - `Expiration` — per-message TTL as a string (e.g., `"60000"` for 60s).
 - `ContentType` — defaults to `"application/json"` if nil.
-- `FireAndForget` — when `true`, publishes the message and returns immediately without waiting for broker confirm. No delivery guarantee. Use for metrics, logs, non-critical events. Never use for CDC or saga.
+- `Headers` — custom headers attached to the message (e.g., `x-source`, `x-operation`).
+
+```go
+type ChannelMode int
+
+const (
+    Confirmed ChannelMode = iota
+    Unsafe
+)
+
+type UnsafeOptions struct {
+    FireAndForget bool
+}
+
+type ProducerChannelOptions struct {
+    Mode          ChannelMode
+    UnsafeOptions UnsafeOptions // only respected when Mode == Unsafe
+}
+```
+
+**Channel Modes — Rust-Inspired Safety Tiers:**
+
+| Mode | FireAndForget | Confirms | Mandatory | Behavior |
+|------|--------------|----------|-----------|----------|
+| `Confirmed` | N/A | ON | ON | Full safety. Waits for broker ack. Returns error on unroutable. Default. |
+| `Unsafe` | `false` | ON | OFF | Confirms enabled but no mandatory routing. You still get ack/nack but unroutable messages disappear silently. |
+| `Unsafe` | `true` | OFF | OFF | Zero overhead. Publish and return immediately. No confirms, no routing checks. True fire-and-forget. |
+
+**Why `FireAndForget` lives inside `UnsafeOptions`:**
+You cannot accidentally enable fire-and-forget in safe mode. You must explicitly opt into `Unsafe` first, then toggle `FireAndForget`. This is like Rust's `unsafe {}` block — you're consciously saying "I know I'm giving up guarantees."
+
+**How `ch.Confirm(false)` and `FireAndForget` relate:**
+
+`ch.Confirm(false)` tells the broker: "always send me a confirmation for every message I publish." The broker will now send a yes/no for every message, no matter what.
+
+Important: calling `ch.Confirm()` at all — whether with `true` or `false` — means you are enabling confirm mode. There is no "disable confirms" option. The parameter is `noWait`:
+- `ch.Confirm(false)` — enable confirms AND wait for the broker to acknowledge it switched to confirm mode.
+- `ch.Confirm(true)` — enable confirms but DON'T wait for the broker's acknowledgement that it switched.
+
+Both enable confirms. The difference is only whether you wait for the broker to say "OK, I'm in confirm mode now" before you start publishing.
+
+`FireAndForget` controls whether your code bothers reading that confirmation or not:
+- `FireAndForget: false` (default) — you wait for the broker's confirmation before returning.
+- `FireAndForget: true` — you publish and return immediately. The broker still sends the confirmation, you just don't read it.
+
+**When `Unsafe + FireAndForget: true`:**
+We skip `ch.Confirm()` entirely. The broker doesn't even track delivery tags for this channel. Zero overhead. But zero guarantees — if the message is lost, you'll never know.
 
 ---
 
@@ -871,9 +916,22 @@ pub.Publish(ctx, []byte(`{"order_id": "456"}`), conn, helpers.RabbitMqPublisherC
     Persistent: true,
 })
 
-// Fire and forget (no confirm, no mandatory routing, fastest)
-pub.Publish(ctx, []byte(`{"metric": "page_view", "count": 1}`), conn, helpers.RabbitMqPublisherConfig{
-    FireAndForget: true,
+// Unsafe mode with fire-and-forget (zero overhead, no guarantees)
+unsafePub := producer.NewProducer("events.topic", "metrics.pageview")
+unsafePub.GetChannel(conn, helpers.ProducerChannelOptions{
+    Mode: helpers.Unsafe,
+    UnsafeOptions: helpers.UnsafeOptions{FireAndForget: true},
+})
+unsafePub.Publish(ctx, []byte(`{"metric": "page_view", "count": 1}`), conn, helpers.RabbitMqPublisherConfig{})
+
+// Unsafe mode WITHOUT fire-and-forget (confirms on, but no mandatory routing)
+relaxedPub := producer.NewProducer("events.topic", "analytics.event")
+relaxedPub.GetChannel(conn, helpers.ProducerChannelOptions{
+    Mode: helpers.Unsafe,
+    UnsafeOptions: helpers.UnsafeOptions{FireAndForget: false},
+})
+relaxedPub.Publish(ctx, []byte(`{"event": "click"}`), conn, helpers.RabbitMqPublisherConfig{
+    Persistent: true,
 })
 
 // With TTL (message expires after 60 seconds if not consumed)
