@@ -1,0 +1,46 @@
+MIT License
+
+Copyright (c) 2025 Srajan Sanjay Saxena
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+
+---
+
+ADDITIONAL TERMS:
+
+1. ATTRIBUTION REQUIRED — Any use of this software, in whole or in part, in
+   any project (open source or commercial) must include clear and visible
+   attribution to the original author: Srajan Sanjay Saxena, with a link to
+   https://github.com/Srajan-Sanjay-Saxena/RabbitMqWrapper-Service-Go
+
+2. NO REPUBLISHING AS OWN WORK — You may NOT republish, repackage, or
+   redistribute this software (or substantial portions of it) as your own
+   original work, under a different name, module path, or package registry.
+
+3. NO COMPETING PACKAGE — You may NOT use this code to create and publish a
+   separate Go module, npm package, or library on any package registry that
+   serves the same purpose and copies the architecture, design, or
+   implementation patterns from this software.
+
+4. DERIVATIVE WORKS — Derivative works are permitted ONLY if they include
+   prominent attribution to this original work and do not violate terms 2 and 3.
+
+5. ENFORCEMENT — Violation of these terms automatically terminates your rights
+   under this license. The author reserves the right to pursue legal action
+   for infringement under applicable copyright law.
