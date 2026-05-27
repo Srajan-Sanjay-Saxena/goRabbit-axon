@@ -1,0 +1,1 @@
+# RabbitMqWrapper-Service-Go
