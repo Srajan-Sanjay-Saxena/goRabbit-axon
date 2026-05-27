@@ -185,11 +185,12 @@ type RabbitQueueConfig struct {
 
 ```go
 type RabbitMqPublisherConfig struct {
-    Persistent  bool
-    Priority    uint8
-    Expiration  string
-    ContentType *string
-    Headers     amqp.Table
+    Persistent    bool
+    Priority      uint8
+    Expiration    string
+    ContentType   *string
+    Headers       amqp.Table
+    FireAndForget bool
 }
 ```
 
@@ -197,6 +198,7 @@ type RabbitMqPublisherConfig struct {
 - `Priority` — 0-9, used with priority queues.
 - `Expiration` — per-message TTL as a string (e.g., `"60000"` for 60s).
 - `ContentType` — defaults to `"application/json"` if nil.
+- `FireAndForget` — when `true`, publishes the message and returns immediately without waiting for broker confirm. No delivery guarantee. Use for metrics, logs, non-critical events. Never use for CDC or saga.
 
 ---
 
@@ -864,9 +866,14 @@ defer pool.Release(conn)
 pub := producer.NewProducer("events.topic", "order.created.us")
 pub.GetChannel(conn)
 
-// Basic persistent publish
+// Basic persistent publish (waits for broker confirm)
 pub.Publish(ctx, []byte(`{"order_id": "456"}`), conn, helpers.RabbitMqPublisherConfig{
     Persistent: true,
+})
+
+// Fire and forget (no confirm, no mandatory routing, fastest)
+pub.Publish(ctx, []byte(`{"metric": "page_view", "count": 1}`), conn, helpers.RabbitMqPublisherConfig{
+    FireAndForget: true,
 })
 
 // With TTL (message expires after 60 seconds if not consumed)
