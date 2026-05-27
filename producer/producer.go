@@ -10,12 +10,14 @@ import (
 )
 
 type RabbitMqProducer struct {
-	exchangeName string
-	routingKey   string
-	channel      *amqp.Channel
-	confirmCh    chan amqp.Confirmation
-	returnCh     chan amqp.Return
-	blockedCh    chan amqp.Blocking
+	exchangeName  string
+	routingKey    string
+	channel       *amqp.Channel
+	confirmCh     chan amqp.Confirmation
+	returnCh      chan amqp.Return
+	blockedCh     chan amqp.Blocking
+	mode          helpers.ChannelMode
+	fireAndForget bool
 }
 
 func NewProducer(exchangeName, routingKey string) *RabbitMqProducer {
@@ -25,22 +27,33 @@ func NewProducer(exchangeName, routingKey string) *RabbitMqProducer {
 	}
 }
 
-func (rProd *RabbitMqProducer) GetChannel(rabbit *connection.RabbitMqConnectionClass) error {
+func (rProd *RabbitMqProducer) GetChannel(rabbit *connection.RabbitMqConnectionClass, opts ...helpers.ProducerChannelOptions) error {
 	ch, err := rabbit.Connection.Channel()
 	if err != nil {
 		return err
 	}
 
-	if err := ch.Confirm(false); err != nil {
-		ch.Close()
-		return err
+	mode := helpers.Confirmed
+	if len(opts) > 0 {
+		mode = opts[0].Mode
+	}
+	rProd.mode = mode
+
+	if mode == helpers.Unsafe {
+		rProd.fireAndForget = opts[0].UnsafeOptions.FireAndForget
+	}
+
+	if mode == helpers.Confirmed || (mode == helpers.Unsafe && !rProd.fireAndForget) {
+		if err := ch.Confirm(false); err != nil {
+			ch.Close()
+			return err
+		}
+		rProd.confirmCh = ch.NotifyPublish(make(chan amqp.Confirmation, 1))
+		rProd.returnCh = ch.NotifyReturn(make(chan amqp.Return, 1))
+		rProd.blockedCh = rabbit.Connection.NotifyBlocked(make(chan amqp.Blocking, 1))
 	}
 
 	rProd.channel = ch
-	rProd.confirmCh = ch.NotifyPublish(make(chan amqp.Confirmation, 1))
-	rProd.returnCh = ch.NotifyReturn(make(chan amqp.Return, 1))
-	rProd.blockedCh = rabbit.Connection.NotifyBlocked(make(chan amqp.Blocking, 1))
-
 	return nil
 }
 
@@ -52,12 +65,12 @@ func (rProd *RabbitMqProducer) Publish(ctx context.Context, body []byte, rabbit 
 	msg := rProd.BuildConfig(cfg)
 	msg.Body = body
 
-	err := rProd.channel.PublishWithContext(ctx, rProd.exchangeName, rProd.routingKey, !cfg.FireAndForget, false, msg)
+	err := rProd.channel.PublishWithContext(ctx, rProd.exchangeName, rProd.routingKey, rProd.mode == helpers.Confirmed, false, msg)
 	if err != nil {
 		return err
 	}
 
-	if cfg.FireAndForget {
+	if rProd.mode == helpers.Unsafe && rProd.fireAndForget {
 		return nil
 	}
 
