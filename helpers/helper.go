@@ -42,4 +42,5 @@ type RabbitMqPublisherConfig struct {
 	Expiration  string
 	ContentType *string
 	Headers     amqp.Table
+	FireAndForget bool
 }

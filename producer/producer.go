@@ -52,9 +52,13 @@ func (rProd *RabbitMqProducer) Publish(ctx context.Context, body []byte, rabbit 
 	msg := rProd.BuildConfig(cfg)
 	msg.Body = body
 
-	err := rProd.channel.PublishWithContext(ctx, rProd.exchangeName, rProd.routingKey, true, false, msg)
+	err := rProd.channel.PublishWithContext(ctx, rProd.exchangeName, rProd.routingKey, !cfg.FireAndForget, false, msg)
 	if err != nil {
 		return err
+	}
+
+	if cfg.FireAndForget {
+		return nil
 	}
 
 	select {
