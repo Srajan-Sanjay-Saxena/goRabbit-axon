@@ -13,7 +13,7 @@ type RabbitMqConnectionClass struct {
 	rabbitConnString     string
 	options              helpers.ConnectionOptions
 	reconnectAttempts    int
-	isShuttingDown       bool
+	shutDownInitiated       bool
 	onReconnectCallbacks []func() error
 	mu                   sync.Mutex
 }
@@ -61,10 +61,10 @@ func (rabbit *RabbitMqConnectionClass) handleDisconnect() {
 	log.Println("[RabbitMQ] Connection closed")
 
 	rabbit.mu.Lock()
-	shuttingDown := rabbit.isShuttingDown
+	hasShutdownInitiated := rabbit.shutDownInitiated
 	rabbit.mu.Unlock()
 
-	if !shuttingDown {
+	if !hasShutdownInitiated {
 		rabbit.reconnect()
 	}
 }
@@ -95,7 +95,7 @@ func (rabbit *RabbitMqConnectionClass) reconnect() {
 
 func (rabbit *RabbitMqConnectionClass) Shutdown() error {
 	rabbit.mu.Lock()
-	rabbit.isShuttingDown = true
+	rabbit.shutDownInitiated = true
 	rabbit.mu.Unlock()
 
 	if rabbit.Connection != nil {

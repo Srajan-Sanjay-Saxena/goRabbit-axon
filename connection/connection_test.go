@@ -40,8 +40,8 @@ func TestNewRabbitMqConnectionClass(t *testing.T) {
 	if conn.Connection != nil {
 		t.Error("expected nil connection before Connect()")
 	}
-	if conn.isShuttingDown {
-		t.Error("expected isShuttingDown to be false")
+	if conn.shutDownInitiated {
+		t.Error("expected shutDownInitiated to be false")
 	}
 	if conn.reconnectAttempts != 0 {
 		t.Errorf("expected 0 reconnect attempts, got %d", conn.reconnectAttempts)
@@ -67,8 +67,8 @@ func TestShutdownWithNilConnection(t *testing.T) {
 	if err != nil {
 		t.Errorf("expected nil error on shutdown with nil connection, got %v", err)
 	}
-	if !conn.isShuttingDown {
-		t.Error("expected isShuttingDown to be true after Shutdown()")
+	if !conn.shutDownInitiated {
+		t.Error("expected shutDownInitiated to be true after Shutdown()")
 	}
 }
 
@@ -78,7 +78,7 @@ func TestShutdownSetsFlag(t *testing.T) {
 
 	conn.Shutdown()
 
-	if !conn.isShuttingDown {
+	if !conn.shutDownInitiated {
 		t.Error("expected isShuttingDown = true")
 	}
 }
