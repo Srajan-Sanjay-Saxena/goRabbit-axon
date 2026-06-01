@@ -93,6 +93,12 @@ func (rabbit *RabbitMqConnectionClass) reconnect() {
 	log.Println("[RabbitMQ] Max reconnect attempts reached")
 }
 
+func (rabbit *RabbitMqConnectionClass) OnReconnect(cb func() error) {
+	rabbit.mu.Lock()
+	defer rabbit.mu.Unlock()
+	rabbit.onReconnectCallbacks = append(rabbit.onReconnectCallbacks, cb)
+}
+
 func (rabbit *RabbitMqConnectionClass) Shutdown() error {
 	rabbit.mu.Lock()
 	rabbit.shutDownInitiated = true

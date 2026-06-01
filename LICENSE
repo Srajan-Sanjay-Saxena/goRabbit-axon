@@ -5,9 +5,9 @@ Copyright (c) 2025 Srajan Sanjay Saxena
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
 in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
+to use, copy, modify, merge, publish, and distribute copies of the Software,
+and to permit persons to whom the Software is furnished to do so, subject to
+the following conditions:
 
 The above copyright notice and this permission notice shall be included in all
 copies or substantial portions of the Software.
@@ -20,27 +20,148 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 
----
+===============================================================================
+SUPPLEMENTAL TERMS AND CONDITIONS
+===============================================================================
 
-ADDITIONAL TERMS:
+The following supplemental terms are legally binding and form an integral part
+of this license. By using, copying, modifying, or distributing this Software,
+you agree to be bound by these terms.
 
-1. ATTRIBUTION REQUIRED — Any use of this software, in whole or in part, in
-   any project (open source or commercial) must include clear and visible
-   attribution to the original author: Srajan Sanjay Saxena, with a link to
-   https://github.com/Srajan-Sanjay-Saxena/RabbitMqWrapper-Service-Go
+-------------------------------------------------------------------------------
+1. FREE TO USE
+-------------------------------------------------------------------------------
 
-2. NO REPUBLISHING AS OWN WORK — You may NOT republish, repackage, or
-   redistribute this software (or substantial portions of it) as your own
-   original work, under a different name, module path, or package registry.
+You ARE permitted to:
 
-3. NO COMPETING PACKAGE — You may NOT use this code to create and publish a
-   separate Go module, npm package, or library on any package registry that
-   serves the same purpose and copies the architecture, design, or
-   implementation patterns from this software.
+  (a) Use this Software in personal, academic, and commercial projects.
 
-4. DERIVATIVE WORKS — Derivative works are permitted ONLY if they include
-   prominent attribution to this original work and do not violate terms 2 and 3.
+  (b) Modify this Software for your own use.
 
-5. ENFORCEMENT — Violation of these terms automatically terminates your rights
-   under this license. The author reserves the right to pursue legal action
-   for infringement under applicable copyright law.
+  (c) Include this Software as a dependency in your applications.
+
+  (d) Create derivative works for internal or non-commercial use, provided
+      attribution is given as specified in Section 2.
+
+-------------------------------------------------------------------------------
+2. MANDATORY ATTRIBUTION
+-------------------------------------------------------------------------------
+
+Any use of this Software MUST include:
+
+  (a) Clear attribution to the original author: Srajan Sanjay Saxena
+
+  (b) A link to the original repository:
+      https://github.com/Srajan-Sanjay-Saxena/RabbitMqWrapper-Service-Go
+
+  (c) Retention of this LICENSE file in any redistribution.
+
+-------------------------------------------------------------------------------
+3. NO SELLING
+-------------------------------------------------------------------------------
+
+You may NOT, under any circumstances:
+
+  (a) Sell, sublicense, or commercially distribute this Software or any
+      derivative thereof as a standalone product, library, SDK, or service.
+
+  (b) Offer this Software (or substantial portions of it) behind a paywall,
+      as a paid package, or as part of a paid course, book, or tutorial
+      without explicit written permission from the copyright holder.
+
+  (c) Monetize this Software in any form — including but not limited to
+      SaaS offerings, paid APIs, or consulting packages where this Software
+      is the primary deliverable.
+
+Using this Software as a dependency within a larger commercial application
+you built is permitted. Selling this Software itself is not.
+
+-------------------------------------------------------------------------------
+4. NO OWNERSHIP CLAIMS
+-------------------------------------------------------------------------------
+
+You may NOT, under any circumstances:
+
+  (a) Claim authorship or ownership of this Software.
+
+  (b) Republish, repackage, or redistribute this Software (or any substantial
+      portion) as your own original work under a different name, module path,
+      or identity.
+
+  (c) Remove, obscure, or alter any copyright notices or author attributions.
+
+  (d) Fork this repository and publish it under a different author identity
+      or module path without explicit written permission.
+
+  (e) Present this Software's architecture, design patterns, or implementation
+      as your own creation in any context.
+
+-------------------------------------------------------------------------------
+5. AUTOMATIC TERMINATION
+-------------------------------------------------------------------------------
+
+Violation of Sections 2 through 4 immediately and automatically terminates
+all rights granted under this license. Upon termination you must cease all
+use and destroy all copies.
+
+-------------------------------------------------------------------------------
+6. LEGAL ENFORCEMENT
+-------------------------------------------------------------------------------
+
+The copyright holder reserves the right to pursue all available legal remedies
+against violators, including but not limited to:
+
+  (a) Injunctive relief to halt unauthorized use or sale.
+
+  (b) Statutory and actual damages under applicable copyright law (including
+      the Indian Copyright Act, 1957; U.S. Copyright Act, 17 U.S.C. § 504;
+      and equivalent legislation in other jurisdictions).
+
+  (c) Recovery of attorney's fees and legal costs.
+
+  (d) DMCA takedown notices to hosting providers and package registries.
+
+  (e) Reporting to platforms, employers, and academic institutions.
+
+-------------------------------------------------------------------------------
+7. GOVERNING LAW
+-------------------------------------------------------------------------------
+
+This license is governed by the laws of India. Disputes shall be subject to
+the exclusive jurisdiction of courts in India. The copyright holder may also
+pursue enforcement in any jurisdiction where infringement occurs.
+
+-------------------------------------------------------------------------------
+8. SEVERABILITY
+-------------------------------------------------------------------------------
+
+If any provision is held unenforceable, it shall be modified to the minimum
+extent necessary to be enforceable. Remaining provisions continue in full
+force.
+
+-------------------------------------------------------------------------------
+9. CONTACT
+-------------------------------------------------------------------------------
+
+For commercial licensing or permissions:
+
+  Author: Srajan Sanjay Saxena
+  GitHub: https://github.com/Srajan-Sanjay-Saxena
+
+===============================================================================
+IN PLAIN ENGLISH
+===============================================================================
+
+  ✅ Use it in your projects — free, always.
+  ✅ Modify it for your needs.
+  ✅ Use it as a dependency in commercial apps you build.
+  ❌ Don't sell it.
+  ❌ Don't claim you wrote it.
+  ❌ Don't republish it as your own package.
+  ❌ Don't remove the attribution.
+
+  Violate these terms → legal action.
+
+===============================================================================
+END OF LICENSE
+===============================================================================
