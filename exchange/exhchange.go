@@ -2,7 +2,7 @@ package exchange
 
 import (
 	amqp "github.com/rabbitmq/amqp091-go"
-	"github.com/Srajan-Sanjay-Saxena/RabbitMqWrapper-Service-Go/connection"
+
 	"github.com/Srajan-Sanjay-Saxena/RabbitMqWrapper-Service-Go/helpers"
 )
 
@@ -33,10 +33,10 @@ func (et ExchangeTopic) String() string {
 type RabbitExchangeClass struct {
 	ExchangeName    string
 	exchangeType    ExchangeTopic
-	exchangeOptions helpers.RabbitExchangeOptions
+	exchangeOptions RabbitExchangeOptions
 }
 
-func NewRabbitExchange(exchangeName string, exchangeType ExchangeTopic, exchangeOptions helpers.RabbitExchangeOptions) *RabbitExchangeClass {
+func NewRabbitExchange(exchangeName string, exchangeType ExchangeTopic, exchangeOptions RabbitExchangeOptions) *RabbitExchangeClass {
 	return &RabbitExchangeClass{
 		ExchangeName:    exchangeName,
 		exchangeType:    exchangeType,
@@ -44,8 +44,8 @@ func NewRabbitExchange(exchangeName string, exchangeType ExchangeTopic, exchange
 	}
 }
 
-func (rbEx *RabbitExchangeClass) CreateExchange(rabbit *connection.RabbitMqConnectionClass) error {
-	ch, err := rabbit.Connection.Channel()
+func (rbEx *RabbitExchangeClass) CreateExchange(conn helpers.IRabbitConnection) error {
+	ch, err := conn.GetChannel()
 	if err != nil {
 		return err
 	}
@@ -54,8 +54,8 @@ func (rbEx *RabbitExchangeClass) CreateExchange(rabbit *connection.RabbitMqConne
 	return ch.ExchangeDeclare(rbEx.ExchangeName, rbEx.exchangeType.String(), rbEx.exchangeOptions.Durable, rbEx.exchangeOptions.AutoDelete, rbEx.exchangeOptions.Internal, rbEx.exchangeOptions.NoWait, nil)
 }
 
-func (rbEx *RabbitExchangeClass) CreateQueue(rabbit *connection.RabbitMqConnectionClass, cfg helpers.RabbitQueueConfig) (amqp.Queue, error) {
-	ch, err := rabbit.Connection.Channel()
+func (rbEx *RabbitExchangeClass) CreateQueue(conn helpers.IRabbitConnection, cfg RabbitQueueConfig) (amqp.Queue, error) {
+	ch, err := conn.GetChannel()
 	if err != nil {
 		return amqp.Queue{}, err
 	}
