@@ -5,7 +5,7 @@ import (
 	"errors"
 
 	amqp "github.com/rabbitmq/amqp091-go"
-	"github.com/Srajan-Sanjay-Saxena/RabbitMqWrapper-Service-Go/connection"
+
 	"github.com/Srajan-Sanjay-Saxena/RabbitMqWrapper-Service-Go/helpers"
 )
 
@@ -15,8 +15,7 @@ type RabbitMqProducer struct {
 	channel       *amqp.Channel
 	confirmCh     chan amqp.Confirmation
 	returnCh      chan amqp.Return
-	blockedCh     chan amqp.Blocking
-	mode          helpers.ChannelMode
+	mode          ChannelMode
 	fireAndForget bool
 }
 
@@ -27,50 +26,49 @@ func NewProducer(exchangeName, routingKey string) *RabbitMqProducer {
 	}
 }
 
-func (rProd *RabbitMqProducer) GetChannel(rabbit *connection.RabbitMqConnectionClass, opts ...helpers.ProducerChannelOptions) error {
-	ch, err := rabbit.Connection.Channel()
+func (rProd *RabbitMqProducer) GetChannel(conn helpers.IRabbitConnection, opts ...ProducerChannelOptions) error {
+	ch, err := conn.GetChannel()
 	if err != nil {
 		return err
 	}
 
-	mode := helpers.Confirmed
+	mode := Confirmed
 	if len(opts) > 0 {
 		mode = opts[0].Mode
 	}
 	rProd.mode = mode
 
-	if mode == helpers.Unsafe {
+	if mode == Unsafe && len(opts) > 0 {
 		rProd.fireAndForget = opts[0].UnsafeOptions.FireAndForget
 	}
 
-	if mode == helpers.Confirmed || (mode == helpers.Unsafe && !rProd.fireAndForget) {
+	if mode == Confirmed || (mode == Unsafe && !rProd.fireAndForget) {
 		if err := ch.Confirm(false); err != nil {
 			ch.Close()
 			return err
 		}
 		rProd.confirmCh = ch.NotifyPublish(make(chan amqp.Confirmation, 1))
 		rProd.returnCh = ch.NotifyReturn(make(chan amqp.Return, 1))
-		rProd.blockedCh = rabbit.Connection.NotifyBlocked(make(chan amqp.Blocking, 1))
 	}
 
 	rProd.channel = ch
 	return nil
 }
 
-func (rProd *RabbitMqProducer) Publish(ctx context.Context, body []byte, rabbit *connection.RabbitMqConnectionClass, cfg helpers.RabbitMqPublisherConfig) error {
+func (rProd *RabbitMqProducer) Publish(ctx context.Context, body []byte, cfg RabbitMqPublisherConfig) error {
 	if rProd.channel == nil {
 		return errors.New("channel not initialized, call GetChannel first")
 	}
 
-	msg := rProd.BuildConfig(cfg)
+	msg := rProd.buildMessage(cfg)
 	msg.Body = body
 
-	err := rProd.channel.PublishWithContext(ctx, rProd.exchangeName, rProd.routingKey, rProd.mode == helpers.Confirmed, false, msg)
+	err := rProd.channel.PublishWithContext(ctx, rProd.exchangeName, rProd.routingKey, rProd.mode == Confirmed, false, msg)
 	if err != nil {
 		return err
 	}
 
-	if rProd.mode == helpers.Unsafe && rProd.fireAndForget {
+	if rProd.mode == Unsafe && rProd.fireAndForget {
 		return nil
 	}
 
@@ -82,15 +80,12 @@ func (rProd *RabbitMqProducer) Publish(ctx context.Context, body []byte, rabbit 
 		return nil
 	case ret := <-rProd.returnCh:
 		return errors.New("message returned: " + ret.ReplyText)
-	case <-rProd.blockedCh:
-		<-rProd.confirmCh
-		return nil
 	case <-ctx.Done():
 		return ctx.Err()
 	}
 }
 
-func (rProd *RabbitMqProducer) BuildConfig(cfg helpers.RabbitMqPublisherConfig) amqp.Publishing {
+func (rProd *RabbitMqProducer) buildMessage(cfg RabbitMqPublisherConfig) amqp.Publishing {
 	deliveryMode := amqp.Transient
 	if cfg.Persistent {
 		deliveryMode = amqp.Persistent
