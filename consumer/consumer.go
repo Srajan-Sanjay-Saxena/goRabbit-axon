@@ -7,7 +7,8 @@ import (
 	"sync"
 
 	amqp "github.com/rabbitmq/amqp091-go"
-	"github.com/Srajan-Sanjay-Saxena/RabbitMqWrapper-Service-Go/connection"
+
+	"github.com/Srajan-Sanjay-Saxena/RabbitMqWrapper-Service-Go/helpers"
 )
 
 type MessageHandler func(ctx context.Context, msg amqp.Delivery) error
@@ -30,8 +31,8 @@ func NewConsumer(queueName string, prefetch int, handler MessageHandler) *Rabbit
 	}
 }
 
-func (c *RabbitMqConsumer) GetChannel(rabbit *connection.RabbitMqConnectionClass) error {
-	ch, err := rabbit.Connection.Channel()
+func (c *RabbitMqConsumer) GetChannel(conn helpers.IRabbitConnection) error {
+	ch, err := conn.GetChannel()
 	if err != nil {
 		return err
 	}
@@ -87,11 +88,9 @@ func (c *RabbitMqConsumer) Stop() error {
 	if c.channel == nil {
 		return nil
 	}
-	// Stop receiving new messages
 	if err := c.channel.Cancel(c.consumerTag, false); err != nil {
 		return err
 	}
-	// Wait for all in-flight messages to finish processing
 	c.wg.Wait()
 	return c.channel.Close()
 }
