@@ -4,8 +4,8 @@ import (
 	"context"
 	"testing"
 
-	connPool "github.com/Srajan-Sanjay-Saxena/RabbitMqWrapper-Service-Go/connection/connectionPool"
-	singleConn "github.com/Srajan-Sanjay-Saxena/RabbitMqWrapper-Service-Go/connection/singleConnection"
+	connPool "github.com/Srajan-Sanjay-Saxena/goRabbit-axon/connection/connectionPool"
+	singleConn "github.com/Srajan-Sanjay-Saxena/goRabbit-axon/connection/singleConnection"
 )
 
 func TestPoolConnect(t *testing.T) {

@@ -3,7 +3,7 @@ package exchange
 import (
 	amqp "github.com/rabbitmq/amqp091-go"
 	"context"
-	"github.com/Srajan-Sanjay-Saxena/RabbitMqWrapper-Service-Go/helpers"
+	"github.com/Srajan-Sanjay-Saxena/goRabbit-axon/helpers"
 )
 
 type ExchangeTopic int

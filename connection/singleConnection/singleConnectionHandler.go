@@ -7,9 +7,9 @@ import (
 
 	amqp "github.com/rabbitmq/amqp091-go"
 
-	"github.com/Srajan-Sanjay-Saxena/RabbitMqWrapper-Service-Go/breaker"
-	"github.com/Srajan-Sanjay-Saxena/RabbitMqWrapper-Service-Go/channel"
-	"github.com/Srajan-Sanjay-Saxena/RabbitMqWrapper-Service-Go/logger"
+	"github.com/Srajan-Sanjay-Saxena/goRabbit-axon/breaker"
+	"github.com/Srajan-Sanjay-Saxena/goRabbit-axon/channel"
+	"github.com/Srajan-Sanjay-Saxena/goRabbit-axon/logger"
 )
 
 type RabbitMqSingleConnectionHandler struct {

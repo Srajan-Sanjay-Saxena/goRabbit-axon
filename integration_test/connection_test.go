@@ -6,8 +6,8 @@ import (
 	"time"
 
 	amqp "github.com/rabbitmq/amqp091-go"
-	"github.com/Srajan-Sanjay-Saxena/RabbitMqWrapper-Service-Go/breaker"
-	singleConn "github.com/Srajan-Sanjay-Saxena/RabbitMqWrapper-Service-Go/connection/singleConnection"
+	"github.com/Srajan-Sanjay-Saxena/goRabbit-axon/breaker"
+	singleConn "github.com/Srajan-Sanjay-Saxena/goRabbit-axon/connection/singleConnection"
 )
 
 func TestConnectionConnect(t *testing.T) {

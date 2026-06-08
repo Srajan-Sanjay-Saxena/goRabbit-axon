@@ -8,7 +8,7 @@ import (
 
 	amqp "github.com/rabbitmq/amqp091-go"
 
-	"github.com/Srajan-Sanjay-Saxena/RabbitMqWrapper-Service-Go/helpers"
+	"github.com/Srajan-Sanjay-Saxena/goRabbit-axon/helpers"
 )
 
 type MessageHandler func(ctx context.Context, msg amqp.Delivery) error

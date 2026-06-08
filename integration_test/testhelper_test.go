@@ -6,11 +6,11 @@ import (
 	"testing"
 	"time"
 
-	"github.com/Srajan-Sanjay-Saxena/RabbitMqWrapper-Service-Go/breaker"
-	singleConn "github.com/Srajan-Sanjay-Saxena/RabbitMqWrapper-Service-Go/connection/singleConnection"
-	"github.com/Srajan-Sanjay-Saxena/RabbitMqWrapper-Service-Go/exchange"
-	"github.com/Srajan-Sanjay-Saxena/RabbitMqWrapper-Service-Go/helpers"
-	"github.com/Srajan-Sanjay-Saxena/RabbitMqWrapper-Service-Go/producer"
+	"github.com/Srajan-Sanjay-Saxena/goRabbit-axon/breaker"
+	singleConn "github.com/Srajan-Sanjay-Saxena/goRabbit-axon/connection/singleConnection"
+	"github.com/Srajan-Sanjay-Saxena/goRabbit-axon/exchange"
+	"github.com/Srajan-Sanjay-Saxena/goRabbit-axon/helpers"
+	"github.com/Srajan-Sanjay-Saxena/goRabbit-axon/producer"
 	"github.com/testcontainers/testcontainers-go"
 	"github.com/testcontainers/testcontainers-go/modules/rabbitmq"
 )

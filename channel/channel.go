@@ -3,7 +3,7 @@ package channel
 import (
 	"context"
 
-	"github.com/Srajan-Sanjay-Saxena/RabbitMqWrapper-Service-Go/logger"
+	"github.com/Srajan-Sanjay-Saxena/goRabbit-axon/logger"
 	amqp "github.com/rabbitmq/amqp091-go"
 )
 

@@ -7,10 +7,10 @@ import (
 
 	amqp "github.com/rabbitmq/amqp091-go"
 
-	"github.com/Srajan-Sanjay-Saxena/RabbitMqWrapper-Service-Go/breaker"
-	"github.com/Srajan-Sanjay-Saxena/RabbitMqWrapper-Service-Go/channel"
-	singleConn "github.com/Srajan-Sanjay-Saxena/RabbitMqWrapper-Service-Go/connection/singleConnection"
-	"github.com/Srajan-Sanjay-Saxena/RabbitMqWrapper-Service-Go/logger"
+	"github.com/Srajan-Sanjay-Saxena/goRabbit-axon/breaker"
+	"github.com/Srajan-Sanjay-Saxena/goRabbit-axon/channel"
+	singleConn "github.com/Srajan-Sanjay-Saxena/goRabbit-axon/connection/singleConnection"
+	"github.com/Srajan-Sanjay-Saxena/goRabbit-axon/logger"
 )
 
 type PoolOptions struct {

@@ -1,4 +1,4 @@
-module github.com/Srajan-Sanjay-Saxena/RabbitMqWrapper-Service-Go
+module github.com/Srajan-Sanjay-Saxena/goRabbit-axon
 
 go 1.25.0
 

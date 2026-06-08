@@ -5,7 +5,7 @@ import (
 
 	amqp "github.com/rabbitmq/amqp091-go"
 
-	"github.com/Srajan-Sanjay-Saxena/RabbitMqWrapper-Service-Go/channel"
+	"github.com/Srajan-Sanjay-Saxena/goRabbit-axon/channel"
 )
 
 type IRabbitConnection interface {
