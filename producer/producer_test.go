@@ -5,7 +5,6 @@ import (
 	"testing"
 
 	amqp "github.com/rabbitmq/amqp091-go"
-	"github.com/Srajan-Sanjay-Saxena/RabbitMqWrapper-Service-Go/helpers"
 )
 
 func TestNewProducer(t *testing.T) {
@@ -22,10 +21,10 @@ func TestNewProducer(t *testing.T) {
 	}
 }
 
-func TestBuildConfigPersistent(t *testing.T) {
+func TestBuildMessagePersistent(t *testing.T) {
 	pub := NewProducer("ex", "rk")
 
-	msg := pub.BuildConfig(helpers.RabbitMqPublisherConfig{
+	msg := pub.buildMessage(RabbitMqPublisherConfig{
 		Persistent: true,
 	})
 
@@ -34,10 +33,10 @@ func TestBuildConfigPersistent(t *testing.T) {
 	}
 }
 
-func TestBuildConfigTransient(t *testing.T) {
+func TestBuildMessageTransient(t *testing.T) {
 	pub := NewProducer("ex", "rk")
 
-	msg := pub.BuildConfig(helpers.RabbitMqPublisherConfig{
+	msg := pub.buildMessage(RabbitMqPublisherConfig{
 		Persistent: false,
 	})
 
@@ -46,21 +45,21 @@ func TestBuildConfigTransient(t *testing.T) {
 	}
 }
 
-func TestBuildConfigDefaultContentType(t *testing.T) {
+func TestBuildMessageDefaultContentType(t *testing.T) {
 	pub := NewProducer("ex", "rk")
 
-	msg := pub.BuildConfig(helpers.RabbitMqPublisherConfig{})
+	msg := pub.buildMessage(RabbitMqPublisherConfig{})
 
 	if msg.ContentType != "application/json" {
 		t.Errorf("expected 'application/json', got '%s'", msg.ContentType)
 	}
 }
 
-func TestBuildConfigCustomContentType(t *testing.T) {
+func TestBuildMessageCustomContentType(t *testing.T) {
 	pub := NewProducer("ex", "rk")
 	ct := "text/plain"
 
-	msg := pub.BuildConfig(helpers.RabbitMqPublisherConfig{
+	msg := pub.buildMessage(RabbitMqPublisherConfig{
 		ContentType: &ct,
 	})
 
@@ -69,10 +68,10 @@ func TestBuildConfigCustomContentType(t *testing.T) {
 	}
 }
 
-func TestBuildConfigPriority(t *testing.T) {
+func TestBuildMessagePriority(t *testing.T) {
 	pub := NewProducer("ex", "rk")
 
-	msg := pub.BuildConfig(helpers.RabbitMqPublisherConfig{
+	msg := pub.buildMessage(RabbitMqPublisherConfig{
 		Priority: 9,
 	})
 
@@ -81,10 +80,10 @@ func TestBuildConfigPriority(t *testing.T) {
 	}
 }
 
-func TestBuildConfigExpiration(t *testing.T) {
+func TestBuildMessageExpiration(t *testing.T) {
 	pub := NewProducer("ex", "rk")
 
-	msg := pub.BuildConfig(helpers.RabbitMqPublisherConfig{
+	msg := pub.buildMessage(RabbitMqPublisherConfig{
 		Expiration: "60000",
 	})
 
@@ -93,7 +92,7 @@ func TestBuildConfigExpiration(t *testing.T) {
 	}
 }
 
-func TestBuildConfigHeaders(t *testing.T) {
+func TestBuildMessageHeaders(t *testing.T) {
 	pub := NewProducer("ex", "rk")
 
 	headers := amqp.Table{
@@ -101,7 +100,7 @@ func TestBuildConfigHeaders(t *testing.T) {
 		"x-version": "1.0",
 	}
 
-	msg := pub.BuildConfig(helpers.RabbitMqPublisherConfig{
+	msg := pub.buildMessage(RabbitMqPublisherConfig{
 		Headers: headers,
 	})
 
@@ -116,20 +115,28 @@ func TestBuildConfigHeaders(t *testing.T) {
 func TestPublishFailsWithoutChannel(t *testing.T) {
 	pub := NewProducer("ex", "rk")
 
-	err := pub.Publish(context.Background(), []byte("test"), nil, helpers.RabbitMqPublisherConfig{})
+	err := pub.Publish(context.Background(), []byte("test"), RabbitMqPublisherConfig{})
 	if err == nil {
 		t.Error("expected error when publishing without channel")
 	}
-	if err.Error() != "channel not initialized, call GetChannel first" {
+	if err.Error() != "channel not initialized or closed, call GetChannel" {
 		t.Errorf("unexpected error: %s", err.Error())
 	}
 }
 
-func TestBuildConfigFullOptions(t *testing.T) {
+func TestIsChannelValidFalseByDefault(t *testing.T) {
+	pub := NewProducer("ex", "rk")
+
+	if pub.IsChannelValid() {
+		t.Error("expected IsChannelValid to be false before GetChannel")
+	}
+}
+
+func TestBuildMessageFullOptions(t *testing.T) {
 	pub := NewProducer("ex", "rk")
 	ct := "application/xml"
 
-	msg := pub.BuildConfig(helpers.RabbitMqPublisherConfig{
+	msg := pub.buildMessage(RabbitMqPublisherConfig{
 		Persistent:  true,
 		Priority:    5,
 		Expiration:  "30000",
