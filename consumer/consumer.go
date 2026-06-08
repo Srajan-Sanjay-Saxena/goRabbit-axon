@@ -31,8 +31,11 @@ func NewConsumer(queueName string, prefetch int, handler MessageHandler) *Rabbit
 	}
 }
 
-func (c *RabbitMqConsumer) GetChannel(conn helpers.IRabbitConnection) error {
-	ch, err := conn.GetChannel()
+func (c *RabbitMqConsumer) GetChannel(ctx context.Context, conn helpers.IRabbitConnection) error {
+	ch, err := conn.GetChannel(ctx, func(_ *amqp.Connection) {
+		c.wg.Wait()
+		c.channel = nil
+	})
 	if err != nil {
 		return err
 	}
