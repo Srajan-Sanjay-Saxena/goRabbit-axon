@@ -1,95 +1,67 @@
-package connection
+package connPool
 
 import (
+	"context"
 	"testing"
-	"time"
 
-	amqp "github.com/rabbitmq/amqp091-go"
-	"github.com/Srajan-Sanjay-Saxena/RabbitMqWrapper-Service-Go/helpers"
+	singleConn "github.com/Srajan-Sanjay-Saxena/RabbitMqWrapper-Service-Go/connection/singleConnection"
 )
 
 func TestNewConnectionPool(t *testing.T) {
-	opts := DefaultOptions()
-	pool := NewConnectionPool("amqp://guest:guest@localhost:5672/", 5, opts)
+	pool := NewConnectionPool("amqp://guest:guest@localhost:5672/", PoolOptions{ConnSize: 5, ChanPerConn: 3}, singleConn.DefaultOptions(), nil)
 
-	if pool.size != 5 {
-		t.Errorf("expected size 5, got %d", pool.size)
+	if pool.poolOpts.ConnSize != 5 {
+		t.Errorf("expected ConnSize 5, got %d", pool.poolOpts.ConnSize)
+	}
+	if pool.poolOpts.ChanPerConn != 3 {
+		t.Errorf("expected ChanPerConn 3, got %d", pool.poolOpts.ChanPerConn)
 	}
 	if pool.connString != "amqp://guest:guest@localhost:5672/" {
 		t.Errorf("unexpected conn string: %s", pool.connString)
 	}
-	if cap(pool.available) != 5 {
-		t.Errorf("expected channel capacity 5, got %d", cap(pool.available))
-	}
 	if len(pool.connections) != 0 {
-		t.Errorf("expected 0 connections before Init, got %d", len(pool.connections))
+		t.Errorf("expected 0 connections before Connect, got %d", len(pool.connections))
+	}
+	if pool.log == nil {
+		t.Error("expected logger to be initialized")
 	}
 }
 
-func TestAcquireOnEmptyPool(t *testing.T) {
-	opts := DefaultOptions()
-	pool := NewConnectionPool("amqp://guest:guest@localhost:5672/", 3, opts)
+func TestNewConnectionPoolDefaults(t *testing.T) {
+	pool := NewConnectionPool("amqp://localhost/", PoolOptions{}, singleConn.DefaultOptions(), nil)
 
-	// Don't call Init — pool is empty
-	conn, err := pool.Acquire()
+	if pool.poolOpts.ConnSize != 3 {
+		t.Errorf("expected default ConnSize 3, got %d", pool.poolOpts.ConnSize)
+	}
+	if pool.poolOpts.ChanPerConn != 5 {
+		t.Errorf("expected default ChanPerConn 5, got %d", pool.poolOpts.ChanPerConn)
+	}
+}
+
+func TestGetChannelOnEmptyPool(t *testing.T) {
+	pool := NewConnectionPool("amqp://localhost/", PoolOptions{ConnSize: 3, ChanPerConn: 5}, singleConn.DefaultOptions(), nil)
+
+	_, err := pool.GetChannel(context.Background(), nil)
 	if err == nil {
-		t.Error("expected error when acquiring from empty pool")
+		t.Error("expected error when getting channel from empty pool")
 	}
-	if conn != nil {
-		t.Error("expected nil connection")
-	}
-	if err.Error() != "no available connections in pool" {
+	if err.Error() != "pool not initialized" {
 		t.Errorf("unexpected error message: %s", err.Error())
 	}
 }
 
-func TestInitFailsWithBadURL(t *testing.T) {
-	opts := helpers.ConnectionOptions{
-		AmqpConfig:           amqp.Config{Heartbeat: 10 * time.Second},
-		ReconnectInterval:    1 * time.Second,
-		MaxReconnectAttempts: 2,
-	}
-	pool := NewConnectionPool("amqp://bad:bad@localhost:9999/", 3, opts)
+func TestConnectFailsWithBadURL(t *testing.T) {
+	pool := NewConnectionPool("amqp://bad:bad@localhost:9999/", PoolOptions{ConnSize: 2, ChanPerConn: 2}, singleConn.DefaultOptions(), nil)
 
-	err := pool.Init()
+	err := pool.Connect(context.Background())
 	if err == nil {
 		t.Error("expected error initializing pool with bad URL")
 		pool.Shutdown()
 	}
 }
 
-func TestPoolSizeMatchesConfig(t *testing.T) {
-	sizes := []int{1, 3, 10}
-	for _, size := range sizes {
-		pool := NewConnectionPool("amqp://localhost/", size, DefaultOptions())
-		if pool.size != size {
-			t.Errorf("expected size %d, got %d", size, pool.size)
-		}
-		if cap(pool.available) != size {
-			t.Errorf("expected channel cap %d, got %d", size, cap(pool.available))
-		}
-	}
-}
-
-func TestAcquireAllThenExhausted(t *testing.T) {
-	opts := DefaultOptions()
-	pool := NewConnectionPool("amqp://guest:guest@localhost:5672/", 2, opts)
-
-	// Manually put mock connections in the channel to simulate Init
-	conn1 := NewRabbitMqConnectionClass(pool.connString, pool.options)
-	conn2 := NewRabbitMqConnectionClass(pool.connString, pool.options)
-	pool.connections = append(pool.connections, conn1, conn2)
-
-	// We can't actually acquire these without a real connection (IsClosed check will panic)
-	// So test that after draining the channel, Acquire returns error
-	_, err := pool.Acquire()
-	if err == nil {
-		t.Error("expected error on exhausted pool")
-	}
-}
-
 func TestShutdownWithNoConnections(t *testing.T) {
-	pool := NewConnectionPool("amqp://localhost/", 3, DefaultOptions())
+	pool := NewConnectionPool("amqp://localhost/", PoolOptions{ConnSize: 3, ChanPerConn: 5}, singleConn.DefaultOptions(), nil)
 
 	err := pool.Shutdown()
 	if err != nil {
