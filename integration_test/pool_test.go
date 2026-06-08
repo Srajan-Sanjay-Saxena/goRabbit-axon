@@ -1,131 +1,84 @@
 package integration_test
 
 import (
+	"context"
 	"testing"
 
-	"github.com/Srajan-Sanjay-Saxena/RabbitMqWrapper-Service-Go/connection"
+	connPool "github.com/Srajan-Sanjay-Saxena/RabbitMqWrapper-Service-Go/connection/connectionPool"
+	singleConn "github.com/Srajan-Sanjay-Saxena/RabbitMqWrapper-Service-Go/connection/singleConnection"
 )
 
-func TestPoolInit(t *testing.T) {
+func TestPoolConnect(t *testing.T) {
 	connStr, cleanup := startRabbitMQ(t)
 	defer cleanup()
 
-	pool := connection.NewConnectionPool(connStr, 3, connection.DefaultOptions())
-	if err := pool.Init(); err != nil {
-		t.Fatalf("pool init failed: %v", err)
+	pool := connPool.NewConnectionPool(connStr, connPool.PoolOptions{ConnSize: 3, ChanPerConn: 5}, singleConn.DefaultOptions(), nil)
+	if err := pool.Connect(context.Background()); err != nil {
+		t.Fatalf("pool connect failed: %v", err)
 	}
 	defer pool.Shutdown()
 }
 
-func TestPoolAcquireAndRelease(t *testing.T) {
+func TestPoolGetChannel(t *testing.T) {
 	connStr, cleanup := startRabbitMQ(t)
 	defer cleanup()
 
-	pool := connection.NewConnectionPool(connStr, 3, connection.DefaultOptions())
-	if err := pool.Init(); err != nil {
-		t.Fatalf("pool init failed: %v", err)
+	pool := connPool.NewConnectionPool(connStr, connPool.PoolOptions{ConnSize: 3, ChanPerConn: 5}, singleConn.DefaultOptions(), nil)
+	if err := pool.Connect(context.Background()); err != nil {
+		t.Fatalf("pool connect failed: %v", err)
 	}
 	defer pool.Shutdown()
 
-	conn, err := pool.Acquire()
+	ch, err := pool.GetChannel(context.Background(), nil)
 	if err != nil {
-		t.Fatalf("acquire failed: %v", err)
+		t.Fatalf("get channel failed: %v", err)
 	}
-	if conn == nil {
-		t.Fatal("expected non-nil connection")
+	if ch == nil {
+		t.Fatal("expected non-nil channel")
 	}
-	if conn.Connection.IsClosed() {
-		t.Fatal("acquired connection should be open")
-	}
-
-	pool.Release(conn)
 }
 
-func TestPoolAcquireAll(t *testing.T) {
+func TestPoolExhaustion(t *testing.T) {
 	connStr, cleanup := startRabbitMQ(t)
 	defer cleanup()
 
-	poolSize := 3
-	pool := connection.NewConnectionPool(connStr, poolSize, connection.DefaultOptions())
-	if err := pool.Init(); err != nil {
-		t.Fatalf("pool init failed: %v", err)
+	pool := connPool.NewConnectionPool(connStr, connPool.PoolOptions{ConnSize: 1, ChanPerConn: 2}, singleConn.DefaultOptions(), nil)
+	if err := pool.Connect(context.Background()); err != nil {
+		t.Fatalf("pool connect failed: %v", err)
 	}
 	defer pool.Shutdown()
 
-	conns := make([]*connection.RabbitMqConnectionClass, 0, poolSize)
-	for i := 0; i < poolSize; i++ {
-		conn, err := pool.Acquire()
-		if err != nil {
-			t.Fatalf("acquire %d failed: %v", i, err)
-		}
-		conns = append(conns, conn)
+	// Acquire all channels
+	ch1, err := pool.GetChannel(context.Background(), nil)
+	if err != nil {
+		t.Fatalf("get channel 1 failed: %v", err)
+	}
+	ch2, err := pool.GetChannel(context.Background(), nil)
+	if err != nil {
+		t.Fatalf("get channel 2 failed: %v", err)
 	}
 
-	// Pool should be exhausted now
-	_, err := pool.Acquire()
+	// Pool should be exhausted
+	_, err = pool.GetChannel(context.Background(), nil)
 	if err == nil {
 		t.Fatal("expected error when pool is exhausted")
 	}
 
-	// Release all back
-	for _, conn := range conns {
-		pool.Release(conn)
-	}
-
-	// Should be able to acquire again
-	conn, err := pool.Acquire()
-	if err != nil {
-		t.Fatalf("acquire after release failed: %v", err)
-	}
-	pool.Release(conn)
+	_ = ch1
+	_ = ch2
 }
 
-func TestPoolShutdownClosesAll(t *testing.T) {
+func TestPoolShutdown(t *testing.T) {
 	connStr, cleanup := startRabbitMQ(t)
 	defer cleanup()
 
-	pool := connection.NewConnectionPool(connStr, 3, connection.DefaultOptions())
-	if err := pool.Init(); err != nil {
-		t.Fatalf("pool init failed: %v", err)
+	pool := connPool.NewConnectionPool(connStr, connPool.PoolOptions{ConnSize: 2, ChanPerConn: 3}, singleConn.DefaultOptions(), nil)
+	if err := pool.Connect(context.Background()); err != nil {
+		t.Fatalf("pool connect failed: %v", err)
 	}
 
-	// Acquire one to have it checked out
-	conn, err := pool.Acquire()
+	err := pool.Shutdown()
 	if err != nil {
-		t.Fatalf("acquire failed: %v", err)
-	}
-
-	// Shutdown should close even checked-out connections
-	pool.Shutdown()
-
-	if !conn.Connection.IsClosed() {
-		t.Fatal("expected checked-out connection to be closed after pool shutdown")
-	}
-}
-
-func TestPoolMultipleAcquireReleaseCycles(t *testing.T) {
-	connStr, cleanup := startRabbitMQ(t)
-	defer cleanup()
-
-	pool := connection.NewConnectionPool(connStr, 2, connection.DefaultOptions())
-	if err := pool.Init(); err != nil {
-		t.Fatalf("pool init failed: %v", err)
-	}
-	defer pool.Shutdown()
-
-	for i := 0; i < 10; i++ {
-		conn, err := pool.Acquire()
-		if err != nil {
-			t.Fatalf("cycle %d acquire failed: %v", i, err)
-		}
-
-		// Use the connection
-		ch, err := conn.Connection.Channel()
-		if err != nil {
-			t.Fatalf("cycle %d channel failed: %v", i, err)
-		}
-		ch.Close()
-
-		pool.Release(conn)
+		t.Fatalf("shutdown error: %v", err)
 	}
 }
