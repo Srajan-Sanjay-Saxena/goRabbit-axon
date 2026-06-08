@@ -49,7 +49,7 @@ func NewConnectionPool(connString string, poolOpts PoolOptions, connOpts singleC
 		chanPool:   make(map[*singleConn.RabbitMqSingleConnectionHandler]chan *amqp.Channel),
 	}
 
-	p.channelHandler = channel.NewChannelHandler(log, p.replaceDeadChannel)
+	p.channelHandler = channel.NewChannelHandler(log)
 
 	return p
 }
@@ -59,7 +59,7 @@ func (p *RabbitMqConnectionPoolHandler) Connect(ctx context.Context) error {
 	defer p.mu.Unlock()
 
 	for i := 0; i < p.poolOpts.ConnSize; i++ {
-		conn := singleConn.NewRabbitMqSingleConnectionHandler(p.connString, p.options, p.log, p.replaceDeadChannel)
+		conn := singleConn.NewRabbitMqSingleConnectionHandler(p.connString, p.options, p.log)
 		conn.AddBreaker(breaker.CircuitBreakerOptions{})
 		if err := conn.Connect(ctx); err != nil {
 			return err
@@ -69,7 +69,7 @@ func (p *RabbitMqConnectionPoolHandler) Connect(ctx context.Context) error {
 		// Pre-warm channel buffer
 		buf := make(chan *amqp.Channel, p.poolOpts.ChanPerConn)
 		for j := 0; j < p.poolOpts.ChanPerConn; j++ {
-			ch, err := p.channelHandler.GetChannel(ctx, conn.Connection)
+			ch, err := p.channelHandler.GetChannel(ctx, conn.Connection , p.replaceDeadChannel)
 			if err != nil {
 				return err
 			}
@@ -82,27 +82,29 @@ func (p *RabbitMqConnectionPoolHandler) Connect(ctx context.Context) error {
 	return nil
 }
 
-func (p *RabbitMqConnectionPoolHandler) GetChannel() (*amqp.Channel, error) {
+func (p *RabbitMqConnectionPoolHandler) GetChannel(ctx context.Context, onClose channel.OnChannelClose) (*amqp.Channel, error) {
 	p.mu.Lock()
+	if len(p.connections) == 0 {
+		p.mu.Unlock()
+		return nil, errors.New("pool not initialized")
+	}
 	startIdx := p.connIdx
 	p.connIdx = (p.connIdx + 1) % len(p.connections)
 	p.mu.Unlock()
 
-	if len(p.connections) == 0 {
-		return nil, errors.New("pool not initialized")
-	}
-
 	for i := 0; i < len(p.connections); i++ {
-		idx := (startIdx + i) % len(p.connections)
-		conn := p.connections[idx]
+		conn := p.connections[(startIdx+i)%len(p.connections)]
 
 		if conn.Connection == nil || conn.Connection.IsClosed() {
 			continue
 		}
 
-		buf := p.chanPool[conn]
 		select {
-		case ch := <-buf:
+		case ch := <-p.chanPool[conn]:
+			// If caller provided onClose, watch for this specific channel's death
+			if onClose != nil {
+				go p.channelHandler.HandleChannelClose(ctx, ch, conn.Connection, onClose)
+			}
 			return ch, nil
 		default:
 			continue
@@ -112,28 +114,29 @@ func (p *RabbitMqConnectionPoolHandler) GetChannel() (*amqp.Channel, error) {
 	return nil, errors.New("all channels acquired — pool exhausted")
 }
 
-func (p *RabbitMqConnectionPoolHandler) ReleaseChannel(ch *amqp.Channel) {
+func (p *RabbitMqConnectionPoolHandler) ReleaseChannel(targetConn *amqp.Connection, ch *amqp.Channel) {
 	p.mu.Lock()
 	defer p.mu.Unlock()
 
-	// Find which connection owns this channel and put it back
 	for _, conn := range p.connections {
-		buf := p.chanPool[conn]
-		// Non-blocking push — if buffer is full, channel is orphaned (shouldn't happen)
+		if conn.Connection != targetConn {
+			continue
+		}
 		select {
-		case buf <- ch:
+		case p.chanPool[conn] <- ch:
 			return
 		default:
-			continue
+			p.log.Warn("buffer full, closing channel")
+			ch.Close()
+			return
 		}
 	}
 
-	// If we get here, no buffer accepted it — close the orphan
-	p.log.Warn("orphaned channel returned, closing")
+	p.log.Warn("connection not found in pool, closing orphaned channel")
 	ch.Close()
 }
 
-func (p *RabbitMqConnectionPoolHandler) replaceDeadChannel(deadCh *amqp.Channel, conn *amqp.Connection) {
+func (p *RabbitMqConnectionPoolHandler) replaceDeadChannel(conn *amqp.Connection) {
 	p.mu.Lock()
 	defer p.mu.Unlock()
 
@@ -155,7 +158,7 @@ func (p *RabbitMqConnectionPoolHandler) replaceDeadChannel(deadCh *amqp.Channel,
 		}
 
 		// Watch the new channel
-		go p.channelHandler.HandleChannelClose(context.Background(), newCh, conn)
+		go p.channelHandler.HandleChannelClose(context.Background(), newCh, conn ,p.replaceDeadChannel)
 
 		// Put replacement into buffer (non-blocking)
 		select {
