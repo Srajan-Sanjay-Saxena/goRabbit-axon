@@ -1,14 +1,14 @@
 package helpers
 
 import (
+	"context"
+
 	amqp "github.com/rabbitmq/amqp091-go"
-	"github.com/Srajan-Sanjay-Saxena/RabbitMqWrapper-Service-Go/breaker"
+
+	"github.com/Srajan-Sanjay-Saxena/RabbitMqWrapper-Service-Go/channel"
 )
 
 type IRabbitConnection interface {
-	GetChannel() (*amqp.Channel, error)
+	GetChannel(ctx context.Context, onClose channel.OnChannelClose) (*amqp.Channel, error)
 	Shutdown() error
-	Connect() error
-	AddBreaker(opts breaker.CircuitBreakerOptions)
-	OnReconnect(cb func() error)
 }
