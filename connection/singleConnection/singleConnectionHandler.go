@@ -32,7 +32,7 @@ func DefaultOptions() ConnectionOptions {
 	}
 }
 
-func NewRabbitMqSingleConnectionHandler(connString string, opts ConnectionOptions, log *logger.Logger, onChannelClose channel.OnChannelClose) *RabbitMqSingleConnectionHandler {
+func NewRabbitMqSingleConnectionHandler(connString string, opts ConnectionOptions, log *logger.Logger) *RabbitMqSingleConnectionHandler {
 	if log == nil {
 		log = logger.New(logger.Production)
 	}
@@ -40,7 +40,7 @@ func NewRabbitMqSingleConnectionHandler(connString string, opts ConnectionOption
 		rabbitConnString: connString,
 		options:         opts,
 		log:             log,
-		channelHandler:  channel.NewChannelHandler(log, onChannelClose),
+		channelHandler:  channel.NewChannelHandler(log),
 	}
 }
 
@@ -122,8 +122,8 @@ func (rabbit *RabbitMqSingleConnectionHandler) reconnect(ctx context.Context) {
 	}
 }
 
-func (rabbit *RabbitMqSingleConnectionHandler) GetChannel(ctx context.Context) (*amqp.Channel, error) {
-	return rabbit.channelHandler.GetChannel(ctx, rabbit.Connection)
+func (rabbit *RabbitMqSingleConnectionHandler) GetChannel(ctx context.Context, onClose channel.OnChannelClose) (*amqp.Channel, error) {
+	return rabbit.channelHandler.GetChannel(ctx, rabbit.Connection, onClose)
 }
 
 func (rabbit *RabbitMqSingleConnectionHandler) OnReconnect(cb func() error) {
