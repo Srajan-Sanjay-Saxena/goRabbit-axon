@@ -8,7 +8,6 @@ import (
 	"time"
 
 	amqp "github.com/rabbitmq/amqp091-go"
-	"github.com/Srajan-Sanjay-Saxena/RabbitMqWrapper-Service-Go/connection"
 	"github.com/Srajan-Sanjay-Saxena/RabbitMqWrapper-Service-Go/consumer"
 )
 
@@ -16,10 +15,7 @@ func TestConsumerReceivesMessages(t *testing.T) {
 	connStr, cleanup := startRabbitMQ(t)
 	defer cleanup()
 
-	conn := connection.NewRabbitMqConnectionClass(connStr, connection.DefaultOptions())
-	if err := conn.Connect(); err != nil {
-		t.Fatalf("connect failed: %v", err)
-	}
+	conn := setupConn(t, connStr)
 	defer conn.Shutdown()
 
 	setupExchangeAndQueue(t, conn, "cons.test.ex", "cons.test.q", "cons.test.#")
@@ -31,13 +27,13 @@ func TestConsumerReceivesMessages(t *testing.T) {
 		return nil
 	}
 
-	cons := consumer.NewConsumer("cons.test.q", 10, handler)
-	if err := cons.GetChannel(conn); err != nil {
-		t.Fatalf("consumer get channel failed: %v", err)
-	}
-
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
+
+	cons := consumer.NewConsumer("cons.test.q", 10, handler)
+	if err := cons.GetChannel(ctx, conn); err != nil {
+		t.Fatalf("consumer get channel failed: %v", err)
+	}
 
 	if err := cons.Consume(ctx); err != nil {
 		t.Fatalf("consume failed: %v", err)
@@ -55,10 +51,7 @@ func TestConsumerHandlerErrorNacks(t *testing.T) {
 	connStr, cleanup := startRabbitMQ(t)
 	defer cleanup()
 
-	conn := connection.NewRabbitMqConnectionClass(connStr, connection.DefaultOptions())
-	if err := conn.Connect(); err != nil {
-		t.Fatalf("connect failed: %v", err)
-	}
+	conn := setupConn(t, connStr)
 	defer conn.Shutdown()
 
 	setupExchangeAndQueue(t, conn, "nack.ex", "nack.q", "nack.#")
@@ -73,13 +66,13 @@ func TestConsumerHandlerErrorNacks(t *testing.T) {
 		return nil
 	}
 
-	cons := consumer.NewConsumer("nack.q", 1, handler)
-	if err := cons.GetChannel(conn); err != nil {
-		t.Fatalf("consumer get channel failed: %v", err)
-	}
-
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
+
+	cons := consumer.NewConsumer("nack.q", 1, handler)
+	if err := cons.GetChannel(ctx, conn); err != nil {
+		t.Fatalf("consumer get channel failed: %v", err)
+	}
 
 	cons.Consume(ctx)
 	time.Sleep(2 * time.Second)
@@ -94,10 +87,7 @@ func TestConsumerGracefulShutdown(t *testing.T) {
 	connStr, cleanup := startRabbitMQ(t)
 	defer cleanup()
 
-	conn := connection.NewRabbitMqConnectionClass(connStr, connection.DefaultOptions())
-	if err := conn.Connect(); err != nil {
-		t.Fatalf("connect failed: %v", err)
-	}
+	conn := setupConn(t, connStr)
 	defer conn.Shutdown()
 
 	setupExchangeAndQueue(t, conn, "graceful.ex", "graceful.q", "graceful.#")
@@ -110,13 +100,13 @@ func TestConsumerGracefulShutdown(t *testing.T) {
 		return nil
 	}
 
-	cons := consumer.NewConsumer("graceful.q", 10, handler)
-	if err := cons.GetChannel(conn); err != nil {
-		t.Fatalf("consumer get channel failed: %v", err)
-	}
-
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
+
+	cons := consumer.NewConsumer("graceful.q", 10, handler)
+	if err := cons.GetChannel(ctx, conn); err != nil {
+		t.Fatalf("consumer get channel failed: %v", err)
+	}
 
 	cons.Consume(ctx)
 	time.Sleep(100 * time.Millisecond)
@@ -134,10 +124,7 @@ func TestConsumerContextCancellation(t *testing.T) {
 	connStr, cleanup := startRabbitMQ(t)
 	defer cleanup()
 
-	conn := connection.NewRabbitMqConnectionClass(connStr, connection.DefaultOptions())
-	if err := conn.Connect(); err != nil {
-		t.Fatalf("connect failed: %v", err)
-	}
+	conn := setupConn(t, connStr)
 	defer conn.Shutdown()
 
 	setupExchangeAndQueue(t, conn, "ctxcancel.ex", "ctxcancel.q", "ctxcancel.#")
@@ -146,14 +133,14 @@ func TestConsumerContextCancellation(t *testing.T) {
 		return nil
 	}
 
+	ctx, cancel := context.WithCancel(context.Background())
+
 	cons := consumer.NewConsumer("ctxcancel.q", 10, handler)
-	if err := cons.GetChannel(conn); err != nil {
+	if err := cons.GetChannel(ctx, conn); err != nil {
 		t.Fatalf("consumer get channel failed: %v", err)
 	}
 
-	ctx, cancel := context.WithCancel(context.Background())
 	cons.Consume(ctx)
-
 	cancel()
 	time.Sleep(100 * time.Millisecond)
 
@@ -166,10 +153,7 @@ func TestConsumerWithPrefetch(t *testing.T) {
 	connStr, cleanup := startRabbitMQ(t)
 	defer cleanup()
 
-	conn := connection.NewRabbitMqConnectionClass(connStr, connection.DefaultOptions())
-	if err := conn.Connect(); err != nil {
-		t.Fatalf("connect failed: %v", err)
-	}
+	conn := setupConn(t, connStr)
 	defer conn.Shutdown()
 
 	setupExchangeAndQueue(t, conn, "prefetch.ex", "prefetch.q", "prefetch.#")
@@ -182,13 +166,13 @@ func TestConsumerWithPrefetch(t *testing.T) {
 		return nil
 	}
 
-	cons := consumer.NewConsumer("prefetch.q", 5, handler)
-	if err := cons.GetChannel(conn); err != nil {
-		t.Fatalf("consumer get channel failed: %v", err)
-	}
-
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
+
+	cons := consumer.NewConsumer("prefetch.q", 5, handler)
+	if err := cons.GetChannel(ctx, conn); err != nil {
+		t.Fatalf("consumer get channel failed: %v", err)
+	}
 
 	cons.Consume(ctx)
 	time.Sleep(3 * time.Second)
