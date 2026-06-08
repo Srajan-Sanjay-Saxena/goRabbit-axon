@@ -26,8 +26,12 @@ func NewProducer(exchangeName, routingKey string) *RabbitMqProducer {
 	}
 }
 
-func (rProd *RabbitMqProducer) GetChannel(conn helpers.IRabbitConnection, opts ...ProducerChannelOptions) error {
-	ch, err := conn.GetChannel()
+func (rProd *RabbitMqProducer) GetChannel(ctx context.Context, conn helpers.IRabbitConnection, opts ...ProducerChannelOptions) error {
+	ch, err := conn.GetChannel(ctx, func(_ *amqp.Connection) {
+		rProd.channel = nil
+		rProd.confirmCh = nil
+		rProd.returnCh = nil
+	})
 	if err != nil {
 		return err
 	}
@@ -55,9 +59,13 @@ func (rProd *RabbitMqProducer) GetChannel(conn helpers.IRabbitConnection, opts .
 	return nil
 }
 
+func (rProd *RabbitMqProducer) IsChannelValid() bool {
+	return rProd.channel != nil
+}
+
 func (rProd *RabbitMqProducer) Publish(ctx context.Context, body []byte, cfg RabbitMqPublisherConfig) error {
 	if rProd.channel == nil {
-		return errors.New("channel not initialized, call GetChannel first")
+		return errors.New("channel not initialized or closed, call GetChannel")
 	}
 
 	msg := rProd.buildMessage(cfg)
