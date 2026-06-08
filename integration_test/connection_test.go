@@ -1,23 +1,20 @@
 package integration_test
 
 import (
+	"context"
 	"testing"
 	"time"
 
-	"github.com/Srajan-Sanjay-Saxena/RabbitMqWrapper-Service-Go/connection"
-	"github.com/Srajan-Sanjay-Saxena/RabbitMqWrapper-Service-Go/helpers"
 	amqp "github.com/rabbitmq/amqp091-go"
+	"github.com/Srajan-Sanjay-Saxena/RabbitMqWrapper-Service-Go/breaker"
+	singleConn "github.com/Srajan-Sanjay-Saxena/RabbitMqWrapper-Service-Go/connection/singleConnection"
 )
 
 func TestConnectionConnect(t *testing.T) {
 	connStr, cleanup := startRabbitMQ(t)
 	defer cleanup()
 
-	conn := connection.NewRabbitMqConnectionClass(connStr, connection.DefaultOptions())
-	err := conn.Connect()
-	if err != nil {
-		t.Fatalf("failed to connect: %v", err)
-	}
+	conn := setupConn(t, connStr)
 	defer conn.Shutdown()
 
 	if conn.Connection == nil {
@@ -32,10 +29,7 @@ func TestConnectionShutdown(t *testing.T) {
 	connStr, cleanup := startRabbitMQ(t)
 	defer cleanup()
 
-	conn := connection.NewRabbitMqConnectionClass(connStr, connection.DefaultOptions())
-	if err := conn.Connect(); err != nil {
-		t.Fatalf("failed to connect: %v", err)
-	}
+	conn := setupConn(t, connStr)
 
 	err := conn.Shutdown()
 	if err != nil {
@@ -47,19 +41,16 @@ func TestConnectionShutdown(t *testing.T) {
 	}
 }
 
-func TestConnectionOpenChannel(t *testing.T) {
+func TestConnectionGetChannel(t *testing.T) {
 	connStr, cleanup := startRabbitMQ(t)
 	defer cleanup()
 
-	conn := connection.NewRabbitMqConnectionClass(connStr, connection.DefaultOptions())
-	if err := conn.Connect(); err != nil {
-		t.Fatalf("failed to connect: %v", err)
-	}
+	conn := setupConn(t, connStr)
 	defer conn.Shutdown()
 
-	ch, err := conn.Connection.Channel()
+	ch, err := conn.GetChannel(context.Background(), nil)
 	if err != nil {
-		t.Fatalf("failed to open channel: %v", err)
+		t.Fatalf("failed to get channel: %v", err)
 	}
 	defer ch.Close()
 }
@@ -68,14 +59,15 @@ func TestConnectionCustomOptions(t *testing.T) {
 	connStr, cleanup := startRabbitMQ(t)
 	defer cleanup()
 
-	opts := helpers.ConnectionOptions{
+	opts := singleConn.ConnectionOptions{
 		AmqpConfig:           amqp.Config{Heartbeat: 10 * time.Second},
 		ReconnectInterval:    2 * time.Second,
 		MaxReconnectAttempts: 3,
 	}
 
-	conn := connection.NewRabbitMqConnectionClass(connStr, opts)
-	if err := conn.Connect(); err != nil {
+	conn := singleConn.NewRabbitMqSingleConnectionHandler(connStr, opts, nil)
+	conn.AddBreaker(breaker.CircuitBreakerOptions{})
+	if err := conn.Connect(context.Background()); err != nil {
 		t.Fatalf("failed to connect with custom opts: %v", err)
 	}
 	defer conn.Shutdown()
