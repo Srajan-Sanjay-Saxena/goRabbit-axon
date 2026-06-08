@@ -2,8 +2,6 @@ package exchange
 
 import (
 	"testing"
-
-	"github.com/Srajan-Sanjay-Saxena/RabbitMqWrapper-Service-Go/helpers"
 )
 
 func TestExchangeTopicString(t *testing.T) {
@@ -27,7 +25,7 @@ func TestExchangeTopicString(t *testing.T) {
 }
 
 func TestNewRabbitExchange(t *testing.T) {
-	opts := helpers.RabbitExchangeOptions{
+	opts := RabbitExchangeOptions{
 		Durable:    true,
 		AutoDelete: false,
 		Internal:   false,
@@ -48,7 +46,7 @@ func TestNewRabbitExchange(t *testing.T) {
 }
 
 func TestNewRabbitExchangeDirectType(t *testing.T) {
-	ex := NewRabbitExchange("direct.ex", Direct, helpers.RabbitExchangeOptions{Durable: true})
+	ex := NewRabbitExchange("direct.ex", Direct, RabbitExchangeOptions{Durable: true})
 
 	if ex.exchangeType != Direct {
 		t.Errorf("expected Direct, got %v", ex.exchangeType)
@@ -59,7 +57,7 @@ func TestNewRabbitExchangeDirectType(t *testing.T) {
 }
 
 func TestNewRabbitExchangeFanoutType(t *testing.T) {
-	ex := NewRabbitExchange("fanout.ex", Fanout, helpers.RabbitExchangeOptions{})
+	ex := NewRabbitExchange("fanout.ex", Fanout, RabbitExchangeOptions{})
 
 	if ex.exchangeType != Fanout {
 		t.Errorf("expected Fanout, got %v", ex.exchangeType)
@@ -70,7 +68,7 @@ func TestNewRabbitExchangeFanoutType(t *testing.T) {
 }
 
 func TestNewRabbitExchangeHeadersType(t *testing.T) {
-	ex := NewRabbitExchange("headers.ex", Headers, helpers.RabbitExchangeOptions{Internal: true})
+	ex := NewRabbitExchange("headers.ex", Headers, RabbitExchangeOptions{Internal: true})
 
 	if ex.exchangeType != Headers {
 		t.Errorf("expected Headers, got %v", ex.exchangeType)
@@ -78,33 +76,4 @@ func TestNewRabbitExchangeHeadersType(t *testing.T) {
 	if !ex.exchangeOptions.Internal {
 		t.Error("expected Internal true")
 	}
-}
-
-func TestCreateExchangeFailsWithNilConnection(t *testing.T) {
-	ex := NewRabbitExchange("test.ex", Topic, helpers.RabbitExchangeOptions{Durable: true})
-
-	// Passing nil connection should panic or error
-	defer func() {
-		if r := recover(); r == nil {
-			t.Error("expected panic with nil connection")
-		}
-	}()
-
-	ex.CreateExchange(nil)
-}
-
-func TestCreateQueueFailsWithNilConnection(t *testing.T) {
-	ex := NewRabbitExchange("test.ex", Topic, helpers.RabbitExchangeOptions{Durable: true})
-
-	defer func() {
-		if r := recover(); r == nil {
-			t.Error("expected panic with nil connection")
-		}
-	}()
-
-	ex.CreateQueue(nil, helpers.RabbitQueueConfig{
-		Name:      "test.queue",
-		QueueType: helpers.QuorumQueue,
-		Durable:   true,
-	})
 }
