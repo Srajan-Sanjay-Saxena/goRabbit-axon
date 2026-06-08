@@ -2,7 +2,7 @@ package exchange
 
 import (
 	amqp "github.com/rabbitmq/amqp091-go"
-
+	"context"
 	"github.com/Srajan-Sanjay-Saxena/RabbitMqWrapper-Service-Go/helpers"
 )
 
@@ -44,8 +44,8 @@ func NewRabbitExchange(exchangeName string, exchangeType ExchangeTopic, exchange
 	}
 }
 
-func (rbEx *RabbitExchangeClass) CreateExchange(conn helpers.IRabbitConnection) error {
-	ch, err := conn.GetChannel()
+func (rbEx *RabbitExchangeClass) CreateExchange(ctx context.Context, conn helpers.IRabbitConnection) error {
+	ch, err := conn.GetChannel(ctx , nil)
 	if err != nil {
 		return err
 	}
@@ -54,8 +54,8 @@ func (rbEx *RabbitExchangeClass) CreateExchange(conn helpers.IRabbitConnection) 
 	return ch.ExchangeDeclare(rbEx.ExchangeName, rbEx.exchangeType.String(), rbEx.exchangeOptions.Durable, rbEx.exchangeOptions.AutoDelete, rbEx.exchangeOptions.Internal, rbEx.exchangeOptions.NoWait, nil)
 }
 
-func (rbEx *RabbitExchangeClass) CreateQueue(conn helpers.IRabbitConnection, cfg RabbitQueueConfig) (amqp.Queue, error) {
-	ch, err := conn.GetChannel()
+func (rbEx *RabbitExchangeClass) CreateQueue(ctx context.Context, conn helpers.IRabbitConnection, cfg RabbitQueueConfig) (amqp.Queue, error) {
+	ch, err := conn.GetChannel(ctx , nil)
 	if err != nil {
 		return amqp.Queue{}, err
 	}
